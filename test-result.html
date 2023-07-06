@@ -1,0 +1,187 @@
+<html>
+  <head>
+  </head>
+  <style>
+    #poster {
+      background-color: beige;
+      padding: 5;
+    }
+    #poster img {
+      width: 150;
+      height: 150;
+    }
+    #station {
+      background-color: rgb(30, 88, 141);
+      color: white;
+      padding: 5px;
+    }
+    #track {
+      background-color: rgb(223, 224, 223);
+      padding: 5px;
+    }
+    #track ul li{
+      list-style-type: none;
+    }
+  </style>
+
+  <body>
+    <header id="poster">
+    <!-- track playing image -->
+    <img id="albumart"/>
+  </header>
+    <main id="station">
+    <!-- station info -->
+    </main>
+    <aside id="track">
+      <ul id="playlist">
+    <!-- playlist track info -->
+      </ul>
+    </aside>
+
+    <script>
+      const alias = "bbcdance/";
+      const api = "https://onlineradiobox.com/json/uk/";
+      const scraper = "http://scraper.onlineradiobox.com/uk."
+
+      function getPoster() {
+      // open station connection
+        const xmlhttp = new XMLHttpRequest();
+        xmlhttp.open("GET", scraper + alias);
+        xmlhttp.send();
+      // connection accepted
+        xmlhttp.onreadystatechange = () => {
+          if (xmlhttp.readyState == XMLHttpRequest.DONE && 200 == xmlhttp.status)
+          {
+            const data = JSON.parse(xmlhttp.responseText);
+      // find and change image element
+            const img = document.getElementById("albumart")
+            if(data.iImg){
+              img.setAttribute("src", data.iImg || "https://demo.tutorialzine.com/2015/03/html5-music-player/assets/img/default.png")
+            }
+          }
+        }
+      }
+
+      function playURI() {
+      // open station connection
+        const xmlhttp = new XMLHttpRequest();
+        xmlhttp.open("GET", api + alias + "widget/");
+        xmlhttp.send();
+      // connection accepted
+        xmlhttp.onreadystatechange = () => {
+          if (xmlhttp.readyState == XMLHttpRequest.DONE && 200 == xmlhttp.status)
+          {
+            const data = JSON.parse(xmlhttp.responseText);
+            const uri = data.streamURL;
+          }
+        }
+      }
+
+      function getStation() {
+      // open station connection
+        const xmlhttp = new XMLHttpRequest();
+        xmlhttp.open("GET", api + alias);
+        xmlhttp.send();
+      // connection accepted
+        xmlhttp.onreadystatechange = () => {
+          if (xmlhttp.readyState == XMLHttpRequest.DONE && 200 == xmlhttp.status)
+          {
+            const data = JSON.parse(xmlhttp.responseText);
+      // declare header
+            const container = document.getElementById("station");
+      // create array from station api
+            const stationArray = [data.station.title, JSON.stringify(...data.station.genres).toUpperCase().replace(/[""]/g, ""), data.station.cityName, data.station.description];
+      // build element for each item
+            for (i = 0; i < stationArray.length; i ++) {
+              const item = document.createElement("div");
+              item.innerHTML = stationArray[i];
+              container.appendChild(item);
+            }
+          }
+        }
+        // playURI(); //=> connect audio
+      }
+      
+      function getPlaylist() {
+      // declare ul list
+        const plist = document.getElementById("playlist");
+      // open playlist connection
+        const xmlhttp = new XMLHttpRequest();
+        xmlhttp.open("GET", api + alias + "playlist/0?tz=" + new Date().getTimezoneOffset() + "&rnd=" + Math.random(), !0);
+        xmlhttp.send();
+      // connection accepted
+        xmlhttp.onreadystatechange = () => {
+          if (xmlhttp.readyState == XMLHttpRequest.DONE && 200 == xmlhttp.status)
+          {
+            const data = JSON.parse(xmlhttp.responseText);
+            console.log("data", data)
+      // truncate & declare playlist to 5 tracks & find the latest track
+            const playlist = data.playlist.slice(0, 5);
+            const lastestTrack = playlist[0];
+      // find the latest track
+            const track1 = document.getElementsByClassName("trackItem");
+      // compare latest playlist track with currenttrack & if to update
+            if(track1[0]) {
+      // if incoming track id exists and is NOT the current track id
+              if(lastestTrack.id) {
+                if(track1[0].id !== lastestTrack.id){
+      // remove last track
+              track1[4].parentNode.removeChild(track1[4]);
+      // add new track
+              created = new Date(1e3 * lastestTrack.created),
+              trackTime =
+                  (created.getHours() > 9
+                    ? created.getHours()
+                    : "0" + created.getHours()) +
+                  ":" +
+                  (created.getMinutes() > 9
+                    ? created.getMinutes()
+                    : "0" + created.getMinutes());
+                    lastestTrack.created = trackTime;
+
+              const li = document.createElement("li")
+              li.setAttribute("class", "trackItem")
+              li.setAttribute("id", lastestTrack.id)
+              li.innerHTML = `${lastestTrack.created} - ${lastestTrack.name}`;
+              plist.insertBefore(li, plist.firstChild)
+              getPoster();
+              }
+              }
+            } else {
+      // translate timestamp
+              for (var plData = 0; plData < playlist.length; plData++) {
+              const track = playlist[plData];
+                created = new Date(1e3 * track.created),
+                trackTime =
+                  (created.getHours() > 9
+                    ? created.getHours()
+                    : "0" + created.getHours()) +
+                  ":" +
+                  (created.getMinutes() > 9
+                    ? created.getMinutes()
+                    : "0" + created.getMinutes());
+      // replace timestamp
+                track.created = trackTime;
+      // create list for playlist tracks
+              const li = document.createElement("li")
+              li.setAttribute("class", "trackItem")
+              li.setAttribute("id", track.id)
+              li.innerHTML = `${track.created} - ${track.name}`;
+              plist.appendChild(li);
+              }
+            }
+          }
+        }
+      }
+
+      // refresh getPoster() & getPlaylist() every 10 seconds
+      setInterval(() => {
+        getPlaylist();
+      }, 10 * 1000)
+
+      // load functions on first render
+      getPoster();
+      getStation();
+      getPlaylist();
+    </script>
+  </body>
